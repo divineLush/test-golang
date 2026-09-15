@@ -23,6 +23,11 @@ type stats struct {
 }
 
 func worker(ctx context.Context, id int, endpoint *url.URL, client *http.Client, interval time.Duration, st *stats) {
+	var timer *time.Timer
+	if interval > 0 {
+		timer = time.NewTimer(interval)
+		defer timer.Stop()
+	}
 	for ctx.Err() == nil {
 		u := *endpoint
 		num := rand.IntN(201) - 100
@@ -47,11 +52,12 @@ func worker(ctx context.Context, id int, endpoint *url.URL, client *http.Client,
 			}
 		}
 
-		if interval > 0 {
+		if timer != nil {
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(interval):
+			case <-timer.C:
+				timer.Reset(interval)
 			}
 		}
 	}
