@@ -1,71 +1,98 @@
-// Package server provides the calculator HTTP handler backed by native ops.
 package server
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
-	"sync"
+	"strings"
+	"sync/atomic"
 
 	"calculator/internal/native"
 )
 
+var (
+	errMissingNum = errors.New("missing num")
+	errBadNum     = errors.New("bad num")
+
+	bodyOK             = []byte("ok")
+	bodyNotImplemented = []byte("not implemented")
+	bodyMissingNum     = []byte("missing 'num' query parameter")
+	bodyBadNum         = []byte("'num' must be an integer")
+)
+
+func parseNum(rawQuery string) (int64, error) {
+	idx := strings.Index(rawQuery, "num=")
+	if idx < 0 {
+		return 0, errMissingNum
+	}
+	start := idx + 4
+	end := start
+	for end < len(rawQuery) && rawQuery[end] != '&' {
+		end++
+	}
+	if start == end {
+		return 0, errBadNum
+	}
+	return strconv.ParseInt(rawQuery[start:end], 10, 64)
+}
+
 // Handler owns the running sum/sub state and exposes it over HTTP.
 type Handler struct {
-	mu       sync.Mutex
-	sum      int64
-	subtract int64
+	sum      atomic.Int64
+	subtract atomic.Int64
 	add      native.Op
 	sub      native.Op
-
-	mux *http.ServeMux
 }
 
 // New builds a Handler that accumulates with add and subtracts with sub.
 func New(add, sub native.Op) *Handler {
-	h := &Handler{add: add, sub: sub, mux: http.NewServeMux()}
-	h.mux.HandleFunc("/calc", h.calc)
-	return h
+	return &Handler{add: add, sub: sub}
 }
 
 // Mux returns the handler's HTTP routes.
 func (h *Handler) Mux() *http.ServeMux {
-	return h.mux
+	mux := http.NewServeMux()
+	mux.HandleFunc("/calc", h.handle)
+	return mux
 }
 
 // PrintTotals prints the current running totals with the given label.
 func (h *Handler) PrintTotals(label string) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	fmt.Printf("[%s] sum=%d sub=%d\n", label, h.sum, h.subtract)
+	fmt.Printf("[%s] sum=%d sub=%d\n", label, h.sum.Load(), h.subtract.Load())
 }
 
-func (h *Handler) calc(w http.ResponseWriter, r *http.Request) {
+func atomicOp(target *atomic.Int64, op native.Op, num int64) {
+	for {
+		old := target.Load()
+		new := op(old, num)
+		if target.CompareAndSwap(old, new) {
+			return
+		}
+	}
+}
+
+func (h *Handler) handle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("not implemented"))
+		w.Write(bodyNotImplemented)
 		return
 	}
 
-	rawNum := r.URL.Query().Get("num")
-	if rawNum == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("missing 'num' query parameter"))
-		return
-	}
-
-	num, err := strconv.ParseInt(rawNum, 10, 64)
+	num, err := parseNum(r.URL.RawQuery)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("'num' must be an integer"))
+		if err == errMissingNum {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write(bodyMissingNum)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write(bodyBadNum)
+		}
 		return
 	}
 
-	h.mu.Lock()
-	h.sum = h.add(h.sum, num)
-	h.subtract = h.sub(h.subtract, num)
-	h.mu.Unlock()
+	atomicOp(&h.sum, h.add, num)
+	atomicOp(&h.subtract, h.sub, num)
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
+	w.Write(bodyOK)
 }
