@@ -11,12 +11,14 @@ PROMETHEUS_IMAGE ?= prom/prometheus
 PROMETHEUS_YML := .prometheus/prometheus.yml
 PROMETHEUS_DATA := .prometheus/data
 
-.PHONY: help libs build server generator clean prometheus prometheus-stop
+.PHONY: help libs build test vet server generator clean prometheus prometheus-stop
 
 help:
 	@echo "Targets:"
 	@echo "  make libs       build native shared libraries (build.sh)"
 	@echo "  make build      compile server and generator binaries"
+	@echo "  make test       run unit tests with the race detector"
+	@echo "  make vet        run go vet static analysis"
 	@echo "  make server     run the calculator server"
 	@echo "  make generator  run the load generator against the server"
 	@echo "  make prometheus     run Prometheus (docker) to scrape the server"
@@ -29,6 +31,12 @@ help:
 
 libs:
 	bash ./build.sh
+
+test:
+	CGO_ENABLED=1 go test -race -count=1 ./...
+
+vet:
+	go vet ./...
 
 SERVER_SRC := $(wildcard calculator_server/*.go internal/server/*.go internal/native/*.go internal/metrics/*.go)
 GENERATOR_SRC := $(wildcard generator/*.go)

@@ -15,6 +15,7 @@ cgo (shared libraries are loaded at runtime via `dlopen`/`dlsym`).
 ```sh
 make libs       # build libcalculator.so (C) + libcalculator_rust.so (Rust)
 make build      # compile server + generator binaries into bin/
+make test       # run unit tests with the race detector
 make server     # run the server        (terminal 1)
 make generator  # run the load generator (terminal 2)
 ```
@@ -27,8 +28,12 @@ make generator  # run the load generator (terminal 2)
 | ------------ | --------------------------------------------------------------- |
 | `make libs`  | Build the native shared libraries into the project root (`.so`) |
 | `make build` | Compile `bin/calculator_server` and `bin/generator`             |
+| `make test`  | Run unit tests with the race detector (`go test -race -count=1 ./...`) |
+| `make vet`   | Static analysis with `go vet`                                   |
 | `make server`    | Run the calculator server                                       |
 | `make generator` | Run the load generator against the server                       |
+| `make prometheus`     | Run Prometheus (Docker) scaping the server at `localhost:9090`  |
+| `make prometheus-stop` | Stop the Prometheus container                                   |
 | `make clean`     | Remove the compiled binaries                                    |
 | `make help`      | Print targets and variables                                     |
 
