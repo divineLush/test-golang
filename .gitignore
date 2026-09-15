@@ -1,0 +1,5 @@
+/bin/
+/rust_lib/target/
+/libcalculator.so
+/libcalculator_rust.so
+/c_lib/*.o

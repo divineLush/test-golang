@@ -4,14 +4,14 @@ GENERATOR_BIN := $(BIN_DIR)/generator
 
 HOST ?= 0.0.0.0
 PORT ?= 8080
-C_LIB ?= ../test_golang_14/libcalculator.so
-RUST_LIB ?= ../test_golang_14/libcalculator_rust.so
+C_LIB ?= ./libcalculator.so
+RUST_LIB ?= ./libcalculator_rust.so
 
 .PHONY: help libs build run server generator clean
 
 help:
 	@echo "Targets:"
-	@echo "  make libs       build native shared libraries (test_golang_14/build.sh)"
+	@echo "  make libs       build native shared libraries (build.sh)"
 	@echo "  make build      compile server and generator binaries"
 	@echo "  make server     run the calculator server"
 	@echo "  make generator  run the load generator against the server"
@@ -22,7 +22,7 @@ help:
 	@echo "  C_LIB=$(C_LIB) RUST_LIB=$(RUST_LIB)"
 
 libs:
-	bash ../test_golang_14/build.sh
+	bash ./build.sh
 
 build: $(SERVER_BIN) $(GENERATOR_BIN)
 
