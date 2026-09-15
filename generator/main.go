@@ -48,7 +48,12 @@ func worker(ctx context.Context, id int, endpoint *url.URL, client *http.Client,
 			} else {
 				io.Copy(io.Discard, resp.Body)
 				resp.Body.Close()
-				st.ok.Add(1)
+				if resp.StatusCode >= 400 {
+					st.errors.Add(1)
+					fmt.Printf("[worker %d] request failed: status %d\n", id, resp.StatusCode)
+				} else {
+					st.ok.Add(1)
+				}
 			}
 		}
 
