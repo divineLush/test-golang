@@ -7,7 +7,7 @@ PORT ?= 8080
 C_LIB ?= ./libcalculator.so
 RUST_LIB ?= ./libcalculator_rust.so
 
-.PHONY: help libs build run server generator clean
+.PHONY: help libs build server generator clean
 
 help:
 	@echo "Targets:"
