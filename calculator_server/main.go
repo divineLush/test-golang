@@ -29,6 +29,9 @@ func main() {
 	rustLibPath := flag.String("rust-lib", "libcalculator_rust.so", "path to the compiled Rust shared library")
 	interval := flag.Duration("interval", 5*time.Second, "time between periodic sum/sub reports")
 	flag.Parse()
+	if *interval <= 0 {
+		log.Fatal("--interval must be a positive duration")
+	}
 
 	cLib, err := native.Load(*cLibPath)
 	mustNative(err)
