@@ -98,9 +98,10 @@ func (h *Handler) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	arrival := time.Now()
 	dC := atomicOp(&h.sum, h.add, num)
 	dRust := atomicOp(&h.subtract, h.sub, num)
-	h.m.Record(dC, dRust, time.Now())
+	h.m.Record(dC, dRust, arrival)
 
 	w.Write(bodyOK)
 }

@@ -24,15 +24,18 @@ help:
 libs:
 	bash ./build.sh
 
+SERVER_SRC := $(wildcard calculator_server/*.go internal/server/*.go internal/native/*.go internal/metrics/*.go)
+GENERATOR_SRC := $(wildcard generator/*.go)
+
 build: $(SERVER_BIN) $(GENERATOR_BIN)
 
 $(BIN_DIR):
 	mkdir -p $@
 
-$(SERVER_BIN): | $(BIN_DIR)
+$(SERVER_BIN): $(SERVER_SRC) | $(BIN_DIR)
 	CGO_ENABLED=1 go build -o $@ ./calculator_server
 
-$(GENERATOR_BIN): | $(BIN_DIR)
+$(GENERATOR_BIN): $(GENERATOR_SRC) | $(BIN_DIR)
 	go build -o $@ ./generator
 
 server: $(SERVER_BIN)
