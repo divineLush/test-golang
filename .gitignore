@@ -3,3 +3,4 @@
 /libcalculator.so
 /libcalculator_rust.so
 /c_lib/*.o
+/.prometheus/

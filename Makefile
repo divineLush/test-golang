@@ -7,7 +7,11 @@ PORT ?= 8080
 C_LIB ?= ./libcalculator.so
 RUST_LIB ?= ./libcalculator_rust.so
 
-.PHONY: help libs build server generator clean
+PROMETHEUS_IMAGE ?= prom/prometheus
+PROMETHEUS_YML := .prometheus/prometheus.yml
+PROMETHEUS_DATA := .prometheus/data
+
+.PHONY: help libs build server generator clean prometheus prometheus-stop
 
 help:
 	@echo "Targets:"
@@ -15,6 +19,8 @@ help:
 	@echo "  make build      compile server and generator binaries"
 	@echo "  make server     run the calculator server"
 	@echo "  make generator  run the load generator against the server"
+	@echo "  make prometheus     run Prometheus (docker) to scrape the server"
+	@echo "  make prometheus-stop stop the Prometheus container"
 	@echo "  make clean      remove build artifacts"
 	@echo ""
 	@echo "Variables:"
@@ -43,6 +49,22 @@ server: $(SERVER_BIN)
 
 generator: $(GENERATOR_BIN)
 	./$(GENERATOR_BIN) --url http://localhost:$(PORT)/calc
+
+prometheus: $(PROMETHEUS_YML)
+	docker run --rm --network=host \
+		--user "$$(id -u):$$(id -g)" \
+		-v "$(CURDIR)/$(PROMETHEUS_YML):/etc/prometheus/prometheus.yml" \
+		-v "$(CURDIR)/$(PROMETHEUS_DATA):/prometheus" \
+		--name calculator-prometheus \
+		$(PROMETHEUS_IMAGE) \
+		--config.file=/etc/prometheus/prometheus.yml
+
+$(PROMETHEUS_YML): prometheus.yml.tmpl
+	mkdir -p $(PROMETHEUS_DATA)
+	sed 's/__PORT__/$(PORT)/' prometheus.yml.tmpl > $@
+
+prometheus-stop:
+	-docker rm -f calculator-prometheus
 
 clean:
 	rm -rf $(BIN_DIR)

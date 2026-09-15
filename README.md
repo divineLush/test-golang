@@ -103,6 +103,33 @@ Prometheus text format (scraped by the standard `/metrics` handler):
 Latency percentiles are computed over calls from the last 60 seconds; `_sum` and
 `_count` are cumulative over the process lifetime. Units are seconds.
 
+## Viewing metrics in Prometheus (Docker)
+
+With the server running (`make server`), scrape it from a real Prometheus:
+
+```sh
+make prometheus        # runs Prometheus in a docker container (localhost:9090)
+make prometheus-stop   # stop that container
+```
+
+Open `http://localhost:9090` and try:
+
+```
+calculator_c_duration_seconds{quantile="0.99"}
+calculator_rust_duration_seconds{quantile="0.95"}
+rate(calculator_requests_total[1m])
+rate(calculator_requests_per_second[1m])
+```
+
+Notes:
+
+- The container uses `--network=host`, so Prometheus reaches the server on
+  `localhost:<PORT>` (default `8080`) — use `make prometheus PORT=9090` if you
+  ran the server on a different port.
+- Scrape config comes from `prometheus.yml.tmpl` (generated into `.prometheus/`,
+  gitignored); server on macOS/Windows may need `host.docker.internal` instead
+  of `localhost` in `targets`.
+
 ## Project layout
 
 ```
@@ -114,4 +141,5 @@ internal/metrics/    Prometheus metrics (request rate, latency percentiles)
 c_lib/               C library source (add)
 rust_lib/            Rust crate source (sub)
 build.sh             builds the native shared libraries
+prometheus.yml.tmpl  Prometheus scrape-config template (docker)
 ```
