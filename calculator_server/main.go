@@ -16,6 +16,12 @@ import (
 	"calculator/internal/server"
 )
 
+func mustNative(err error) {
+	if err != nil {
+		log.Fatalf("Failed to load native libraries: %v\nDid you run build.sh first?", err)
+	}
+}
+
 func main() {
 	host := flag.String("host", "0.0.0.0", "bind host")
 	port := flag.Int("port", 8080, "bind port")
@@ -25,22 +31,14 @@ func main() {
 	flag.Parse()
 
 	cLib, err := native.Load(*cLibPath)
-	if err != nil {
-		log.Fatalf("Failed to load native libraries: %v\nDid you run build.sh first?", err)
-	}
+	mustNative(err)
 	rustLib, err := native.Load(*rustLibPath)
-	if err != nil {
-		log.Fatalf("Failed to load native libraries: %v\nDid you run build.sh first?", err)
-	}
+	mustNative(err)
 
 	cAdd, err := cLib.Symbol("add")
-	if err != nil {
-		log.Fatalf("Failed to load native libraries: %v\nDid you run build.sh first?", err)
-	}
+	mustNative(err)
 	rustSub, err := rustLib.Symbol("sub")
-	if err != nil {
-		log.Fatalf("Failed to load native libraries: %v\nDid you run build.sh first?", err)
-	}
+	mustNative(err)
 
 	h := server.New(cAdd, rustSub)
 	httpServer := &http.Server{
